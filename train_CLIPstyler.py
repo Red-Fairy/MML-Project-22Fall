@@ -50,6 +50,8 @@ parser.add_argument('--lr', type=float, default=5e-4,
                     help='Number of domains')
 parser.add_argument('--thresh', type=float, default=0.7,
                     help='Number of domains')
+parser.add_argument('--source_text', type=str, default="a Photo",
+                    help='text for source image')
 args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -153,7 +155,7 @@ clip_model, preprocess = clip.load('ViT-B/32', device, jit=False)
 
 prompt = args.text
 
-source = "a Photo"
+source = args.source_text
 
 with torch.no_grad():
     template_text = compose_text_with_templates(prompt, imagenet_templates)
