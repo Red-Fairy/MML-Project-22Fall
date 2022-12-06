@@ -76,6 +76,7 @@ content_tf = test_transform(args.content_width,args.content_height, args.crop)
 #get video fps & video size
 content_video = cv2.VideoCapture(args.content_path)
 fps = int(content_video.get(cv2.CAP_PROP_FPS))
+# print(fps, '\n')
 content_video_length = int(content_video.get(cv2.CAP_PROP_FRAME_COUNT))
 output_width = int(content_video.get(cv2.CAP_PROP_FRAME_WIDTH))
 output_height = int(content_video.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -84,7 +85,7 @@ assert fps != 0, 'Fps is zero, Please enter proper video path'
 
 pbar = tqdm(total = content_video_length)
 
-if content_path.suffix in [".mp4", ".avi", ".mpg"]:
+if content_path.suffix in [".mp4", ".avi", ".mpg", ".mov", ".mkv"]:
 
     output_video_path = output_name = output_dir / '{:s}_{:s}{:s}'.format(
                 content_path.stem, decoder_path.stem, args.save_ext)
