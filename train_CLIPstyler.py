@@ -52,6 +52,12 @@ parser.add_argument('--thresh', type=float, default=0.7,
                     help='Number of domains')
 parser.add_argument('--source_text', type=str, default="a Photo",
                     help='text for source image')
+parser.add_argument('--src_weight', action='store_true',
+                    help='using text_image similarity as weight')
+parser.add_argument('--content_first', type=int, default=60,
+                    help='first iters with no patch loss')
+parser.add_argument('--ind_direct', action='store_true',
+                    help='using independent patch ')
 args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -189,34 +195,67 @@ for epoch in range(0, steps+1):
 
     loss_patch=0 
     img_proc =[]
+    img_content = []
+    # print("img_shape: ", target.shape, content_image.shape)
+    img_pair = torch.cat([target, content_image], dim=1)
+    # print('pair shape: ', img_pair.shape)
+
     for n in range(num_crops):
-        target_crop = cropper(target)
-        target_crop = augment(target_crop)
-        img_proc.append(target_crop)
+        img_crop = cropper(img_pair)
+        img_crop = augment(img_crop)
+        img_proc.append(img_crop[:, :3, :, :])
+        # print('crop: ', img_crop.shape)
+        img_content.append(img_crop[:, 3:, :, :])
 
     img_proc = torch.cat(img_proc,dim=0)
     img_aug = img_proc
 
     image_features = clip_model.encode_image(clip_normalize(img_aug,device))
     image_features /= (image_features.clone().norm(dim=-1, keepdim=True))
-    
-    img_direction = (image_features-source_features)
+
+    # extract cropped content image features
+    img_content = torch.cat(img_content, dim=0)
+    crop_content_features = clip_model.encode_image(clip_normalize(img_content, device))
+    crop_content_features /= (crop_content_features.clone().norm(dim=-1, keepdim=True))
+
+    if args.ind_patch:
+        img_direction = (image_features - crop_content_features)
+    else:
+        img_direction = (image_features - source_features)
+
     img_direction /= img_direction.clone().norm(dim=-1, keepdim=True)
-    
     text_direction = (text_features-text_source).repeat(image_features.size(0),1)
     text_direction /= text_direction.norm(dim=-1, keepdim=True)
     loss_temp = (1- torch.cosine_similarity(img_direction, text_direction, dim=1))
     loss_temp[loss_temp<args.thresh] =0
-    loss_patch+=loss_temp.mean()
-    
-    glob_features = clip_model.encode_image(clip_normalize(target,device))
-    glob_features /= (glob_features.clone().norm(dim=-1, keepdim=True))
-    
-    glob_direction = (glob_features-source_features)
-    glob_direction /= glob_direction.clone().norm(dim=-1, keepdim=True)
-    
-    loss_glob = (1- torch.cosine_similarity(glob_direction, text_direction, dim=1)).mean()
-    
+
+    if epoch > args.content_first:
+        if args.src_weight:
+            # using similarity as weight on crops
+            src_text = text_source.repeat(args.num_crops, 1)
+            src_similarity = torch.cosine_similarity(crop_content_features, src_text, dim=1)
+            # print('similarity: ', src_similarity.detach().cpu().numpy().shape)
+            # src_similarity /= torch.exp(src_similarity).sum(axis=0)  # softmax as weight
+            print('similarity: ', src_similarity.detach().cpu().numpy().max(),
+                  src_similarity.detach().cpu().numpy().min(), src_similarity.detach().cpu().numpy().sum())
+            loss_temp *= src_similarity * 4
+
+        loss_patch += loss_temp.mean()
+    else:
+        loss_patch = torch.tensor(0)
+
+    if epoch > args.content_first:
+        glob_features = clip_model.encode_image(clip_normalize(target,device))
+        glob_features /= (glob_features.clone().norm(dim=-1, keepdim=True))
+
+        glob_direction = (glob_features-source_features)
+        glob_direction /= glob_direction.clone().norm(dim=-1, keepdim=True)
+
+        loss_glob = (1- torch.cosine_similarity(glob_direction, text_direction, dim=1)).mean()
+
+    else:
+        loss_glob = torch.tensor(0)
+
     reg_tv = args.lambda_tv*get_image_prior_losses(target)
 
     total_loss = args.lambda_patch*loss_patch + content_weight * content_loss+ reg_tv+ args.lambda_dir*loss_glob
