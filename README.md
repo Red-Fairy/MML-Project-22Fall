@@ -25,7 +25,7 @@ $ pip install git+https://github.com/openai/CLIP.git
 ```
 
 ## Original Style Transfer (in paper Clipstyler)
-## Style Transfer with Single-image
+### Style Transfer with Single-image
 We provide demo with replicate.ai 
 <a href="https://replicate.ai/paper11667/clipstyler"><img src="https://img.shields.io/static/v1?label=Replicate&message=Demo and Docker Image&color=blue"></a>
 
@@ -93,8 +93,6 @@ Put source and target decoder model paths in ```$SOURCE_DECODER``` and ```$TARGE
 
 Style interpolation example with interpolating two styles "Stone wall" and "Desert sand"
 
-![interp_style](https://user-images.githubusercontent.com/94511035/150737816-e1bd4339-16b7-45cc-bdc7-dfc0af7cf306.jpg)
-
 ### Video style transfer with Fast model
 
 For video style transfer, first install video io package
@@ -109,15 +107,22 @@ Then run the following command,
 python test_video.py --content_path $VIDEO_PATH$ --decoder $DECODER_PATH$
 ```
 
-## Improved CLIPstyler (our improvement)
+## Improved CLIPstyler (our improvements)
+We realize three improvements for the CLIPstyler. The methods and experiments could be
+find in the report.
 ### Multicrop CLIPstyler
+WE exploit the patch-wise loss between each content patch and stylized patch.
+
 run the following command,
 
 ```
 python 
 ```
 ### Localized CLIPstyler
-run
+We realize localized style transfer. You can assign the specific part of the image that you 
+want to stylize.
+
+To see the results, run
 ```
 python train_CLIPstyler_localize.py --content_path $imageyou want to stylize$ \
 --content_name face --exp_name exp1 \
@@ -133,7 +138,9 @@ python train_CLIPstyler_localize.py --content_path ./test_set/boat.jpg \
 ```
 this code will transfer the "water" in image "boat.jpg" into "stars" style
 ### Style-aware Selective Sampling
-run the following command,
+This improvement allows control over the extent of stylization.
+
+run the following command to see the results,
 
 ```
 python 
