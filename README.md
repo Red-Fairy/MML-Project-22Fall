@@ -1,7 +1,6 @@
-# CLIPstyler
-## Official Pytorch implementation of "CLIPstyler:Image Style Transfer with a Single Text Condition" (CVPR 2022 Accepted)
-### [Gihyun Kwon](https://sites.google.com/view/gihyunkwon), [Jong Chul Ye](https://bispl.weebly.com/professor.html)
-LINK : https://arxiv.org/abs/2112.00374
+# Improved CLIPstyler
+## Code for multi-modal-learning course project
+### Group members: Rundong Luo, Zekai Zhang, Chuanruo Ning
 
 ![MAIN3_e2-min](https://user-images.githubusercontent.com/94511035/142139437-9d91f39e-b3d7-46cf-b43b-cb7fdead69a8.png)
 
@@ -14,7 +13,6 @@ LINK : https://arxiv.org/abs/2112.00374
   year={2021}
 }
 ```
-
 ### Environment
 Pytorch 1.7.1, Python 3.6
 
@@ -26,7 +24,8 @@ $ conda install -c anaconda git
 $ pip install git+https://github.com/openai/CLIP.git
 ```
 
-### Style Transfer with Single-image
+## Original Style Transfer (in paper Clipstyler)
+## Style Transfer with Single-image
 We provide demo with replicate.ai 
 <a href="https://replicate.ai/paper11667/clipstyler"><img src="https://img.shields.io/static/v1?label=Replicate&message=Demo and Docker Image&color=blue"></a>
 
@@ -110,3 +109,32 @@ Then run the following command,
 python test_video.py --content_path $VIDEO_PATH$ --decoder $DECODER_PATH$
 ```
 
+## Improved CLIPstyler (our improvement)
+### Multicrop CLIPstyler
+run the following command,
+
+```
+python 
+```
+### Localized CLIPstyler
+run
+```
+python train_CLIPstyler_localize.py --content_path $imageyou want to stylize$ \
+--content_name face --exp_name exp1 \
+--source_text $the content you want to stylize$ \
+--text $the style you want to apply$
+```
+for example
+```
+python train_CLIPstyler_localize.py --content_path ./test_set/boat.jpg \
+--content_name boat --exp_name exp1 \
+--source_text water \
+--text stars
+```
+this code will transfer the "water" in image "boat.jpg" into "stars" style
+### Style-aware Selective Sampling
+run the following command,
+
+```
+python 
+```

@@ -44,7 +44,7 @@ parser.add_argument('--img_width', type=int, default=512,
                     help='size of images')
 parser.add_argument('--img_height', type=int, default=512,
                     help='size of images')
-parser.add_argument('--max_step', type=int, default=200,
+parser.add_argument('--max_step', type=int, default=300,
                     help='Number of domains')
 parser.add_argument('--lr', type=float, default=5e-4,
                     help='Number of domains')
@@ -54,7 +54,7 @@ parser.add_argument('--source_text', type=str, default="a Photo",
                     help='text for source image')
 parser.add_argument('--src_weight', action='store_true',
                     help='using text_image similarity as weight')
-parser.add_argument('--content_first', type=int, default=60,
+parser.add_argument('--content_first', type=int, default=100,
                     help='first iters with no patch loss')
 parser.add_argument('--ind_direct', action='store_true',
                     help='using independent patch ')
@@ -181,9 +181,8 @@ with torch.no_grad():
     
 num_crops = args.num_crops
 for epoch in range(0, steps+1):
-    
     scheduler.step()
-    target = style_net(content_image,use_sigmoid=True).to(device)
+    target = style_net(content_image, use_sigmoid=True).to(device)
     target.requires_grad_(True)
     
     target_features = utils.get_features(img_normalize(target), VGG)
@@ -193,8 +192,8 @@ for epoch in range(0, steps+1):
     content_loss += torch.mean((target_features['conv4_2'] - content_features['conv4_2']) ** 2)
     content_loss += torch.mean((target_features['conv5_2'] - content_features['conv5_2']) ** 2)
 
-    loss_patch=0 
-    img_proc =[]
+    loss_patch = 0
+    img_proc = []
     img_content = []
     # print("img_shape: ", target.shape, content_image.shape)
     img_pair = torch.cat([target, content_image], dim=1)
@@ -207,10 +206,10 @@ for epoch in range(0, steps+1):
         # print('crop: ', img_crop.shape)
         img_content.append(img_crop[:, 3:, :, :])
 
-    img_proc = torch.cat(img_proc,dim=0)
+    img_proc = torch.cat(img_proc, dim=0)
     img_aug = img_proc
 
-    image_features = clip_model.encode_image(clip_normalize(img_aug,device))
+    image_features = clip_model.encode_image(clip_normalize(img_aug, device))
     image_features /= (image_features.clone().norm(dim=-1, keepdim=True))
 
     # extract cropped content image features
@@ -224,10 +223,10 @@ for epoch in range(0, steps+1):
         img_direction = (image_features - source_features)
 
     img_direction /= img_direction.clone().norm(dim=-1, keepdim=True)
-    text_direction = (text_features-text_source).repeat(image_features.size(0),1)
+    text_direction = (text_features - text_source).repeat(image_features.size(0), 1)
     text_direction /= text_direction.norm(dim=-1, keepdim=True)
-    loss_temp = (1- torch.cosine_similarity(img_direction, text_direction, dim=1))
-    loss_temp[loss_temp<args.thresh] =0
+    loss_temp = (1 - torch.cosine_similarity(img_direction, text_direction, dim=1))
+    loss_temp[loss_temp < args.thresh] = 0
 
     if epoch > args.content_first:
         if args.src_weight:
@@ -236,29 +235,30 @@ for epoch in range(0, steps+1):
             src_similarity = torch.cosine_similarity(crop_content_features, src_text, dim=1)
             # print('similarity: ', src_similarity.detach().cpu().numpy().shape)
             # src_similarity /= torch.exp(src_similarity).sum(axis=0)  # softmax as weight
-            print('similarity: ', src_similarity.detach().cpu().numpy().max(),
-                  src_similarity.detach().cpu().numpy().min(), src_similarity.detach().cpu().numpy().sum())
-            loss_temp *= src_similarity * 4
+            # print('similarity: ', src_similarity.detach().cpu().numpy().max(),
+            #       src_similarity.detach().cpu().numpy().min(), src_similarity.detach().cpu().numpy().sum())
+            src_similarity[src_similarity < 0.25] = 0
+            loss_temp *= src_similarity * 5
 
         loss_patch += loss_temp.mean()
     else:
         loss_patch = torch.tensor(0)
 
     if epoch > args.content_first:
-        glob_features = clip_model.encode_image(clip_normalize(target,device))
+        glob_features = clip_model.encode_image(clip_normalize(target, device))
         glob_features /= (glob_features.clone().norm(dim=-1, keepdim=True))
 
-        glob_direction = (glob_features-source_features)
+        glob_direction = (glob_features - source_features)
         glob_direction /= glob_direction.clone().norm(dim=-1, keepdim=True)
 
-        loss_glob = (1- torch.cosine_similarity(glob_direction, text_direction, dim=1)).mean()
+        loss_glob = (1 - torch.cosine_similarity(glob_direction, text_direction, dim=1)).mean()
 
     else:
         loss_glob = torch.tensor(0)
 
-    reg_tv = args.lambda_tv*get_image_prior_losses(target)
+    reg_tv = args.lambda_tv * get_image_prior_losses(target)
 
-    total_loss = args.lambda_patch*loss_patch + content_weight * content_loss+ reg_tv+ args.lambda_dir*loss_glob
+    total_loss = args.lambda_patch * loss_patch + content_weight * content_loss + reg_tv + args.lambda_dir * loss_glob
     total_loss_epoch.append(total_loss)
 
     optimizer.zero_grad()
