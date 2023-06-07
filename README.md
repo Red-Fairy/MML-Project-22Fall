@@ -1,5 +1,7 @@
-## Towards improvement to [CLIPStyler (CVPR 2022)](https://github.com/cyclomon/CLIPstyler) (PKU Multi Modal Learning Course Project)
+## Towards improvement to CLIPStyler (PKU Multi Modal Learning Course Project)
 ### Authors: Rundong Luo, Zekai Zhang, Chuanruo Ning (Equal Contributions)
+
+**Our project is based on the [CLIPStyler (CVPR 2022)](https://github.com/cyclomon/CLIPstyler)**
 
 [**Presentation Slides**](./Project-Presentation.pdf), [**Project Report**](./Project-Report.pdf)
 
